@@ -2,7 +2,7 @@
   "name": "Gym Training Plan — Recomp",
   "short_name": "GTP",
   "description": "6-week gym recomp training plan with tracking, nutrition, and Firebase sync.",
-  "start_url": "./gym_training_plan.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0f14",
   "theme_color": "#0d0f14",
@@ -27,13 +27,13 @@
       "name": "Today's Workout",
       "short_name": "Workout",
       "description": "Jump straight to today's training day",
-      "url": "./gym_training_plan.html#plan"
+      "url": "./index.html#plan"
     },
     {
       "name": "Nutrition",
       "short_name": "Meals",
       "description": "View meal plans",
-      "url": "./gym_training_plan.html#nutrition"
+      "url": "./index.html#nutrition"
     }
   ]
 }
