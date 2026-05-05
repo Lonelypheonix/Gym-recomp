@@ -92,7 +92,13 @@ function renderSyncBar() {
   const save  = document.getElementById('btnSave');
   const devEl = document.getElementById('syncDeviceId');
   if (!dot) return;
-  if (devEl && window._deviceId) devEl.textContent = 'ID: ' + window._deviceId.slice(0,12) + '…';
+  if (devEl && window._deviceId) {
+    const id = window._deviceId;
+    devEl.textContent = 'Sync ID: ' + (id.length > 18 ? id.slice(0,16) + '…' : id);
+    devEl.title = id;
+    devEl.style.cursor = 'pointer';
+    devEl.onclick = copyCurrentId;
+  }
   if (window._fbReady) {
     dot.className = 'sync-dot amber';
     text.textContent = 'Firebase connected — not synced yet';
@@ -192,6 +198,38 @@ function showSetup() {
   const saved = localStorage.getItem('gtp_firebase_config');
   if (saved) document.getElementById('fb-config-input').value = saved;
   document.getElementById('fb-config-error').textContent = '';
+  // Populate sync ID section
+  const currentId = window._deviceId || '';
+  document.getElementById('fb-current-id').textContent = currentId;
+  document.getElementById('fb-sync-id-input').value = currentId;
+  document.getElementById('fb-sync-id-error').textContent = '';
+}
+
+function applySyncId() {
+  const raw = document.getElementById('fb-sync-id-input').value.trim();
+  const err = document.getElementById('fb-sync-id-error');
+  err.textContent = '';
+  if (!raw) { err.textContent = 'Enter a sync ID'; return; }
+  // Allow letters, digits, underscores, hyphens — strip everything else
+  const sanitized = raw.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  if (!sanitized) { err.textContent = 'ID must contain at least one letter or number'; return; }
+  localStorage.setItem('gtp_device_id', sanitized);
+  window._deviceId = sanitized;
+  document.getElementById('fb-current-id').textContent = sanitized;
+  renderSyncBar();
+  if (window._fbReady) {
+    showToast('Sync ID updated — loading shared data…');
+    window.fbLoad();
+  } else {
+    showToast('Sync ID set to: ' + sanitized);
+  }
+}
+
+function copyCurrentId() {
+  if (!window._deviceId) return;
+  navigator.clipboard.writeText(window._deviceId)
+    .then(() => showToast('Sync ID copied to clipboard ✓'))
+    .catch(() => showToast('Copy failed — select manually'));
 }
 
 function hideSetup() {
@@ -1362,6 +1400,13 @@ footer p{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
 .fb-btn.cancel:hover{color:var(--text)}
 .fb-btn.del{background:var(--bg3);border:1px solid var(--hiit);color:var(--hiit);margin-left:auto}
 .fb-rule{height:1px;background:var(--border);margin:14px 0}
+.fb-sync-section{margin-bottom:14px}
+.fb-sync-row{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 14px;margin-bottom:6px}
+.fb-current-id{font-family:"DM Mono",monospace;font-size:13px;color:var(--accent2);flex:1;word-break:break-all}
+.fb-sync-hint{font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:8px}
+.fb-sync-row-input{display:flex;gap:8px;align-items:center}
+.fb-sync-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 14px;color:var(--text);font-family:"DM Mono",monospace;font-size:12px;outline:none;transition:border-color .15s}
+.fb-sync-input:focus{border-color:var(--accent2)}
 pre.fb-rules-box{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:12px;font-family:"DM Mono",monospace;white-space:pre;overflow-x:auto}
 .fb-rules-box b{color:var(--accent)}
 
@@ -1428,7 +1473,7 @@ pre.fb-rules-box{background:var(--bg3);border:1px solid var(--border);border-rad
   <div class="fb-modal">
     <h3>Firebase Setup</h3>
     <p>One-time setup. Your data is stored in <b>your own Firebase project</b> — no login, no account needed to use the app. Just paste your config once.</p>
-    <div class="fb-note">✅ No authentication required — the app uses a unique device ID stored in your browser to identify your data document in Firestore.</div>
+    <div class="fb-note">✅ No authentication required — the app uses a <b>Sync ID</b> to identify your Firestore document. Set the same Sync ID on all your devices to share data.</div>
     <div class="fb-step"><div class="fb-step-n">1</div><div class="fb-step-b">Go to <b><a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent2)">console.firebase.google.com</a></b> → Create project → name it <code>gym-plan</code> → skip Analytics.</div></div>
     <div class="fb-step"><div class="fb-step-n">2</div><div class="fb-step-b">Click the <code>&lt;/&gt;</code> Web icon → register app → copy the <code>firebaseConfig</code> object shown.</div></div>
     <div class="fb-step"><div class="fb-step-n">3</div><div class="fb-step-b">In left menu: <b>Build → Firestore Database → Create database → Start in test mode</b> → pick region <code>asia-east1</code> (closest to Taiwan).</div></div>
@@ -1441,6 +1486,23 @@ service cloud.firestore {
     }
   }
 }</pre>
+    <div class="fb-rule"></div>
+
+    <!-- SYNC ID SECTION -->
+    <div class="fb-sync-section">
+      <p style="margin-bottom:8px"><b style="color:var(--text)">Sync ID — share data across devices:</b></p>
+      <div class="fb-sync-row" title="Click to copy">
+        <span class="fb-current-id" id="fb-current-id">—</span>
+        <button class="fb-btn cancel" style="padding:5px 14px;font-size:10px;flex-shrink:0" onclick="copyCurrentId()">Copy</button>
+      </div>
+      <p class="fb-sync-hint">To sync a second device: tap <b>Copy</b> above, open Firebase Setup on the other device, paste the ID in the field below, and hit <b>Apply</b>.<br>Or type any short name (e.g. <code>pavan-gym</code>) and use it on all your devices.</p>
+      <div class="fb-sync-row-input">
+        <input class="fb-sync-input" id="fb-sync-id-input" type="text" maxlength="40" placeholder="Paste an ID or type a custom name…">
+        <button class="fb-btn go" style="white-space:nowrap" onclick="applySyncId()">Apply</button>
+      </div>
+      <div class="fb-err" id="fb-sync-id-error"></div>
+    </div>
+
     <div class="fb-rule"></div>
     <p style="margin-bottom:4px"><b style="color:var(--text)">Paste your firebaseConfig JSON below:</b></p>
     <textarea class="fb-textarea" id="fb-config-input" placeholder='{
