@@ -1,7 +1,7 @@
 // ── GTP Service Worker ───────────────────────────────────────────────
 const CACHE    = 'gtp-v1';
 const APP_SHELL = [
-  './gym_training_plan.html',
+  './index.html',
   './manifest.json',
   // Google Fonts (CSS + woff2 subsets are cached on first fetch via the
   // network-first strategy below, so no need to hard-code the woff2 URLs)
