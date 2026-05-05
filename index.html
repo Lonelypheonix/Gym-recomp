@@ -639,8 +639,9 @@ function renderFoodLog(){
   updateFoodTotals();
 }
 
-function updateFoodTotals(){
-  const totals=state.foodLog.reduce((a,f)=>({cal:a.cal+f.cal,pro:a.pro+f.pro,carb:a.carb+f.carb,fat:a.fat+f.fat}),{cal:0,pro:0,carb:0,fat:0});
+function updateFoodTotals(fl){
+  const list=fl!==undefined?fl:(typeof getActiveCycle==='function'?(getActiveCycle().foodLog||[]):state.foodLog||[]);
+  const totals=list.reduce((a,f)=>({cal:a.cal+f.cal,pro:a.pro+f.pro,carb:a.carb+f.carb,fat:a.fat+f.fat}),{cal:0,pro:0,carb:0,fat:0});
   document.getElementById('ftCal').textContent=Math.round(totals.cal);
   document.getElementById('ftPro').textContent=Math.round(totals.pro)+'g';
   document.getElementById('ftCarb').textContent=Math.round(totals.carb)+'g';
